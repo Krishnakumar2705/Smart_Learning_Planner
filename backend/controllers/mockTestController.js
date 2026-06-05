@@ -19,7 +19,18 @@ export const generateMockTest = async (req, res) => {
       return res.status(400).json({ message: 'Subject is required' });
     }
 
-    const testData = await generateAIMockTest(subject);
+    let syllabusText = "General topics";
+    if (isConnected()) {
+      const planner = await mongoose.model('Planner').findOne({ user: req.user._id });
+      if (planner && planner.topics && planner.topics.length > 0) {
+        const subjectTopics = planner.topics.filter(t => t.subject === subject);
+        if (subjectTopics.length > 0) {
+          syllabusText = subjectTopics.map(t => `- ${t.unit}: ${t.name}`).join('\n');
+        }
+      }
+    }
+
+    const testData = await generateAIMockTest(subject, syllabusText);
 
     if (isConnected()) {
       const mockTest = await MockTest.create({

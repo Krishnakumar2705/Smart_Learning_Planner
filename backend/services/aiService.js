@@ -449,7 +449,7 @@ export const generateAIRecommendations = async (subjectStatusList) => {
   }
 };
 
-export const generateAIMockTest = async (subject) => {
+export const generateAIMockTest = async (subject, syllabusText = "General topics") => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
     return {
@@ -466,8 +466,13 @@ export const generateAIMockTest = async (subject) => {
     const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const prompt = `
-      You are an expert examiner. Please generate a mock test for the subject: ${subject}.
+      You are an expert examiner. Please generate a rigorous mock test for the subject: ${subject}.
       
+      Here is the specific syllabus to base the questions on:
+      ${syllabusText}
+      
+      IMPORTANT: Actively pull in current real-world examples, advanced concepts from the provided syllabus, and standard examination patterns. The questions must strictly test the concepts mentioned in the syllabus.
+
       Return a strictly formatted JSON object with 10 MCQs, 5 short questions, and 2 long questions.
       Use this exact JSON structure:
       {
