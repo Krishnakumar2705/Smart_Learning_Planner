@@ -87,14 +87,21 @@ const useStore = create(
         }
       },
 
-      googleLoginSimulate: async () => {
+      googleLoginSimulate: async (customEmail, customUsername) => {
         set({ loading: true });
         try {
           const emails = ['placement_crack@gmail.com', 'topper_student@gmail.com', 'consistent_learner@gmail.com'];
           const names = ['Karan Sharma', 'Preeti Patel', 'Aditya Sen'];
           const randomIdx = Math.floor(Math.random() * names.length);
-          const email = emails[randomIdx];
-          const username = names[randomIdx];
+          
+          let email = emails[randomIdx];
+          let username = names[randomIdx];
+
+          if (customEmail) {
+            email = customEmail;
+            username = customUsername ? customUsername : customEmail.split('@')[0];
+          }
+
           const googleId = `g_${Math.floor(100000 + Math.random() * 900000)}`;
           const avatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${username.replace(' ', '')}`;
 

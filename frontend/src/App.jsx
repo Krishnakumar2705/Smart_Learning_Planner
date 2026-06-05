@@ -4,6 +4,18 @@ import { Toaster } from 'react-hot-toast';
 import useStore from './store/useStore';
 import { BrainCircuit, Flame, BookOpen } from 'lucide-react';
 import { PropagateLoader } from 'react-spinners';
+import { AnimatePresence, motion } from 'framer-motion';
+
+const PageTransition = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 15 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -15 }}
+    transition={{ duration: 0.3, ease: 'easeInOut' }}
+  >
+    {children}
+  </motion.div>
+);
 
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
@@ -119,17 +131,19 @@ export default function App() {
               </div>
             </div>
 
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route path="/syllabus" element={<Syllabus />} />
-              <Route path="/revision" element={<Revision />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/pomodoro" element={<Pomodoro />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/mock-tests" element={<MockTests />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
+                <Route path="/schedule" element={<PageTransition><Schedule /></PageTransition>} />
+                <Route path="/syllabus" element={<PageTransition><Syllabus /></PageTransition>} />
+                <Route path="/revision" element={<PageTransition><Revision /></PageTransition>} />
+                <Route path="/analytics" element={<PageTransition><Analytics /></PageTransition>} />
+                <Route path="/pomodoro" element={<PageTransition><Pomodoro /></PageTransition>} />
+                <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+                <Route path="/mock-tests" element={<PageTransition><MockTests /></PageTransition>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AnimatePresence>
           </>
         )}
       </main>

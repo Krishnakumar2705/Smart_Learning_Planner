@@ -102,7 +102,8 @@ const Login = () => {
         </div>
 
         <button
-          onClick={googleLoginSimulate}
+          onClick={() => googleLoginSimulate(email, username)}
+          type="button"
           className="w-full py-2.5 bg-slate-100 dark:bg-slate-200 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-slate-300 dark:bg-white/10 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 font-semibold rounded-xl text-xs transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
