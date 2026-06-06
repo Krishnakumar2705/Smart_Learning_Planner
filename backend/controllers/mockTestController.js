@@ -1,28 +1,30 @@
 import MockTest from '../models/MockTest.js';
+import User from '../models/User.js';
+import Planner from '../models/Planner.js';
 import { generateAIMockTest } from '../services/aiService.js';
 import mongoose from 'mongoose';
 
-// Check if MongoDB is connected
 const isConnected = () => mongoose.connection.readyState === 1;
-
-// In-Memory Database Simulator for Mock Tests
 let MOCK_TESTS_DB = [];
 
-// @desc    Generate and save a new mock test
-// @route   POST /api/mock-test/generate
-// @access  Private
+const resolveUserId = async (clerkId) => {
+  if (!isConnected()) return clerkId;
+  const user = await User.findOne({ clerkId });
+  return user ? user._id : clerkId;
+};
+
+// POST /api/mock-test/generate
 export const generateMockTest = async (req, res) => {
   try {
     const { subject } = req.body;
-    
-    if (!subject) {
-      return res.status(400).json({ message: 'Subject is required' });
-    }
+    if (!subject) return res.status(400).json({ message: 'Subject is required' });
 
-    let syllabusText = "General topics";
+    const userId = await resolveUserId(req.user._id);
+
+    let syllabusText = 'General topics';
     if (isConnected()) {
-      const planner = await mongoose.model('Planner').findOne({ user: req.user._id });
-      if (planner && planner.topics && planner.topics.length > 0) {
+      const planner = await Planner.findOne({ user: userId });
+      if (planner?.topics?.length > 0) {
         const subjectTopics = planner.topics.filter(t => t.subject === subject);
         if (subjectTopics.length > 0) {
           syllabusText = subjectTopics.map(t => `- ${t.unit}: ${t.name}`).join('\n');
@@ -34,43 +36,40 @@ export const generateMockTest = async (req, res) => {
 
     if (isConnected()) {
       const mockTest = await MockTest.create({
-        user: req.user._id,
-        subject,
-        mcqs: testData.mcqs || [],
-        shortQuestions: testData.shortQuestions || [],
-        longQuestions: testData.longQuestions || []
-      });
-
-      res.status(201).json({ success: true, mockTest });
-    } else {
-      const mockTest = {
-        _id: `mocktest_${Math.floor(1000 + Math.random() * 9000)}`,
-        user: req.user._id.toString(),
+        user: userId,
         subject,
         mcqs: testData.mcqs || [],
         shortQuestions: testData.shortQuestions || [],
         longQuestions: testData.longQuestions || [],
-        createdAt: new Date()
+      });
+      return res.status(201).json({ success: true, mockTest });
+    } else {
+      const mockTest = {
+        _id: `mocktest_${Date.now()}`,
+        user: userId,
+        subject,
+        mcqs: testData.mcqs || [],
+        shortQuestions: testData.shortQuestions || [],
+        longQuestions: testData.longQuestions || [],
+        createdAt: new Date(),
       };
       MOCK_TESTS_DB.push(mockTest);
-      res.status(201).json({ success: true, mockTest });
+      return res.status(201).json({ success: true, mockTest });
     }
   } catch (error) {
     res.status(500).json({ message: 'Failed to generate mock test', error: error.message });
   }
 };
 
-// @desc    Get all saved mock tests for user
-// @route   GET /api/mock-test
-// @access  Private
+// GET /api/mock-test
 export const getMockTests = async (req, res) => {
   try {
+    const userId = await resolveUserId(req.user._id);
     if (isConnected()) {
-      const tests = await MockTest.find({ user: req.user._id }).sort({ createdAt: -1 });
-      res.json(tests);
+      const tests = await MockTest.find({ user: userId }).sort({ createdAt: -1 });
+      return res.json(tests);
     } else {
-      const tests = MOCK_TESTS_DB.filter(t => t.user === req.user._id.toString());
-      res.json(tests);
+      return res.json(MOCK_TESTS_DB.filter(t => t.user === userId));
     }
   } catch (error) {
     res.status(500).json({ message: 'Failed to retrieve mock tests', error: error.message });

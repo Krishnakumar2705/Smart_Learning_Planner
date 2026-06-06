@@ -4,13 +4,14 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_AUTH = `${BASE_URL}/api/auth`;
+const API_AUTH    = `${BASE_URL}/api/auth`;
 const API_PLANNER = `${BASE_URL}/api/planner`;
 const API_ANALYTICS = `${BASE_URL}/api/analytics`;
 const API_MOCK_TEST = `${BASE_URL}/api/mock-test`;
 
+// Attach Clerk token to every axios request automatically
 axios.interceptors.request.use((config) => {
-  const token = useStore.getState().token;
+  const token = useStore.getState().clerkToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -20,130 +21,81 @@ axios.interceptors.request.use((config) => {
 const useStore = create(
   persist(
     (set, get) => ({
-      user: null,
-      token: null,
+      // ── Clerk user info ───────────────────────────────────────
+      user: null,        // synced MongoDB user profile
+      clerkToken: null,  // Clerk session JWT (used in API calls)
       theme: 'dark',
-      streakDays: 0,
-      achievements: [],
-      
+
+      // ── Planner data ──────────────────────────────────────────
       planner: null,
       dailySchedules: [],
       analytics: null,
       recommendations: [],
       loading: false,
 
-      // Auth actions
-      setUser: (userData) => {
-        set({ user: userData });
-        if (userData?.token) {
-          axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
+      toggleTheme: () =>
+        set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+
+      // ── Called from App.jsx after Clerk confirms sign-in ──────
+      // Syncs Clerk user into MongoDB, stores token, loads planner
+      syncClerkUser: async (clerkUser, getToken) => {
+        try {
+          // Get Clerk session JWT to use for our backend API calls
+          const token = await getToken();
+          set({ clerkToken: token });
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+          // Sync user profile into our MongoDB
+          const response = await axios.post(`${API_AUTH}/sync`, {
+            clerkId: clerkUser.id,
+            username: clerkUser.fullName || clerkUser.username,
+            email: clerkUser.primaryEmailAddress?.emailAddress || '',
+            avatar: clerkUser.imageUrl || '',
+          });
+
+          set({ user: response.data });
+
+          // Load their planner data
+          await get().fetchAllPlannerData();
+        } catch (error) {
+          console.error('Failed to sync Clerk user:', error);
         }
       },
-      logout: () => {
-        set({ user: null, token: null, streakDays: 0, achievements: [], planner: null, dailySchedules: [], analytics: null, recommendations: [] });
+
+      // Clear everything on sign-out (Clerk handles the actual sign-out)
+      clearUserData: () => {
+        set({
+          user: null,
+          clerkToken: null,
+          planner: null,
+          dailySchedules: [],
+          analytics: null,
+          recommendations: [],
+        });
         delete axios.defaults.headers.common['Authorization'];
-        toast.success('Logged out successfully');
-      },
-      
-      toggleTheme: () => set((state) => {
-        const newTheme = state.theme === 'light' ? 'dark' : 'light';
-        return { theme: newTheme };
-      }),
-      
-      login: async (email, password) => {
-        set({ loading: true });
-        try {
-          const response = await axios.post(`${API_AUTH}/login`, { email, password });
-          const data = response.data;
-          set({ user: data, token: data.token });
-          axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-          toast.success('Logged in successfully!');
-          await get().fetchAllPlannerData();
-          return { success: true };
-        } catch (err) {
-          const msg = err.response?.data?.message || 'Invalid email or password.';
-          toast.error(msg);
-          return { success: false, error: msg };
-        } finally {
-          set({ loading: false });
-        }
       },
 
-      register: async (username, email, password) => {
-        set({ loading: true });
-        try {
-          const response = await axios.post(`${API_AUTH}/register`, { username, email, password });
-          const data = response.data;
-          set({ user: data, token: data.token });
-          axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-          toast.success('Registration successful!');
-          return { success: true };
-        } catch (err) {
-          const msg = err.response?.data?.message || 'Registration failed. Please try again.';
-          toast.error(msg);
-          return { success: false, error: msg };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      googleLoginSimulate: async (customEmail, customUsername) => {
-        set({ loading: true });
-        try {
-          const emails = ['placement_crack@gmail.com', 'topper_student@gmail.com', 'consistent_learner@gmail.com'];
-          const names = ['Karan Sharma', 'Preeti Patel', 'Aditya Sen'];
-          const randomIdx = Math.floor(Math.random() * names.length);
-          
-          let email = emails[randomIdx];
-          let username = names[randomIdx];
-
-          if (customEmail) {
-            email = customEmail;
-            username = customUsername ? customUsername : customEmail.split('@')[0];
-          }
-
-          const googleId = `g_${Math.floor(100000 + Math.random() * 900000)}`;
-          const avatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${username.replace(' ', '')}`;
-
-          const response = await axios.post(`${API_AUTH}/google`, { email, username, googleId, avatar });
-          const data = response.data;
-          set({ user: data, token: data.token });
-          axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-          toast.success(`Welcome back, ${username}!`);
-          await get().fetchAllPlannerData();
-          return { success: true };
-        } catch (err) {
-          const msg = err.response?.data?.message || 'Google Auth simulation failed.';
-          toast.error(msg);
-          return { success: false, error: msg };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      // Planner actions
+      // ── Planner ───────────────────────────────────────────────
       fetchAllPlannerData: async () => {
-        if (!get().user) return;
         set({ loading: true });
         try {
           const currentPlanRes = await axios.get(`${API_PLANNER}/current`).catch(() => null);
           if (currentPlanRes && currentPlanRes.data) {
             const planner = currentPlanRes.data;
             const schedulesRes = await axios.get(`${API_PLANNER}/schedules`);
-            const reportRes = await axios.get(`${API_ANALYTICS}/report`);
-            const recsRes = await axios.get(`${API_ANALYTICS}/recommendations`);
-            
+            const reportRes    = await axios.get(`${API_ANALYTICS}/report`);
+            const recsRes      = await axios.get(`${API_ANALYTICS}/recommendations`);
             set({
               planner,
               dailySchedules: schedulesRes.data,
               analytics: reportRes.data.report,
-              recommendations: recsRes.data.recommendations
+              recommendations: recsRes.data.recommendations,
             });
           } else {
             set({ planner: null, dailySchedules: [], analytics: null, recommendations: [] });
           }
         } catch (error) {
-          console.error('Failed to load study planner databases:', error);
+          console.error('Failed to load planner data:', error);
         } finally {
           set({ loading: false });
         }
@@ -155,7 +107,7 @@ const useStore = create(
           const response = await axios.post(`${API_PLANNER}/generate`, params);
           const { planner, dailySchedules } = response.data;
           set({ planner, dailySchedules });
-          toast.success('Study plan generated successfully!');
+          toast.success('Study plan generated!');
           await get().reloadAnalyticsAndRecommendations();
           return { success: true };
         } catch (err) {
@@ -170,27 +122,24 @@ const useStore = create(
       reloadAnalyticsAndRecommendations: async () => {
         try {
           const reportRes = await axios.get(`${API_ANALYTICS}/report`);
-          const recsRes = await axios.get(`${API_ANALYTICS}/recommendations`);
-          set({
-            analytics: reportRes.data.report,
-            recommendations: recsRes.data.recommendations
-          });
+          const recsRes   = await axios.get(`${API_ANALYTICS}/recommendations`);
+          set({ analytics: reportRes.data.report, recommendations: recsRes.data.recommendations });
         } catch (err) {
-          console.error('Failed to refresh data summaries:', err);
+          console.error('Failed to refresh analytics:', err);
         }
       },
 
       toggleTask: async (scheduleId, taskId, isCompleted) => {
         try {
           const response = await axios.patch(`${API_PLANNER}/schedules/${scheduleId}/tasks/${taskId}`, { isCompleted });
-          const updatedSchedule = response.data.schedule;
-          set(state => ({
-            dailySchedules: state.dailySchedules.map(s => s._id === scheduleId ? updatedSchedule : s)
+          set((state) => ({
+            dailySchedules: state.dailySchedules.map((s) =>
+              s._id === scheduleId ? response.data.schedule : s
+            ),
           }));
           toast.success(isCompleted ? 'Task completed!' : 'Task unmarked.');
           await get().reloadAnalyticsAndRecommendations();
         } catch (err) {
-          console.error('Failed to update task checklist:', err);
           toast.error('Failed to update task.');
         }
       },
@@ -202,7 +151,6 @@ const useStore = create(
           toast.success(isCompleted ? 'Topic completed!' : 'Topic unmarked.');
           await get().reloadAnalyticsAndRecommendations();
         } catch (err) {
-          console.error('Failed to update syllabus topic:', err);
           toast.error('Failed to update topic.');
         }
       },
@@ -211,11 +159,11 @@ const useStore = create(
         try {
           const response = await axios.post(`${API_PLANNER}/topics`, { name, subject, priority });
           set({ planner: response.data.planner });
-          toast.success('Topic added successfully!');
+          toast.success('Topic added!');
           await get().reloadAnalyticsAndRecommendations();
           return { success: true };
         } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to add custom topic.';
+          const msg = err.response?.data?.message || 'Failed to add topic.';
           toast.error(msg);
           return { success: false, error: msg };
         }
@@ -228,7 +176,6 @@ const useStore = create(
           toast.success(isCompleted ? 'Revision completed!' : 'Revision unmarked.');
           await get().reloadAnalyticsAndRecommendations();
         } catch (err) {
-          console.error('Failed to update spaced repetition checklist:', err);
           toast.error('Failed to update revision.');
         }
       },
@@ -237,8 +184,8 @@ const useStore = create(
         set({ loading: true });
         try {
           const response = await axios.post(`${API_MOCK_TEST}/generate`, { subject });
-          toast.success('Mock test generated successfully!');
-          return { success: true, test: response.data.test };
+          toast.success('Mock test generated!');
+          return { success: true, mockTest: response.data.mockTest };
         } catch (err) {
           const msg = err.response?.data?.message || 'Failed to generate mock test.';
           toast.error(msg);
@@ -252,16 +199,13 @@ const useStore = create(
         set({ loading: true });
         try {
           const formData = new FormData();
-          formData.append('pdf', file);
-          const response = await axios.post(`${API_PLANNER}/upload-syllabus`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
+          formData.append('file', file);
+          const response = await axios.post(`${API_PLANNER}/upload-syllabus`, formData);
           toast.success('Syllabus PDF processed!');
-          return { success: true, topics: response.data.topics };
+          return { success: true, syllabus: response.data.syllabus };
         } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to process PDF.';
-          toast.error(msg);
-          return { success: false, error: msg };
+          toast.error('Failed to process PDF.');
+          return { success: false };
         } finally {
           set({ loading: false });
         }
@@ -271,16 +215,13 @@ const useStore = create(
         set({ loading: true });
         try {
           const formData = new FormData();
-          formData.append('pdf', file);
-          const response = await axios.post(`${API_PLANNER}/upload-pyq`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
+          formData.append('file', file);
+          const response = await axios.post(`${API_PLANNER}/upload-pyq`, formData);
           toast.success('PYQ analyzed!');
-          return { success: true, topics: response.data.topics };
+          return { success: true, frequentTopics: response.data.frequentTopics };
         } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to analyze PYQ.';
-          toast.error(msg);
-          return { success: false, error: msg };
+          toast.error('Failed to analyze PYQ.');
+          return { success: false };
         } finally {
           set({ loading: false });
         }
@@ -293,9 +234,8 @@ const useStore = create(
           toast.success('Standard syllabus generated!');
           return { success: true, topics: response.data.topics };
         } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to generate standard syllabus.';
-          toast.error(msg);
-          return { success: false, error: msg };
+          toast.error('Failed to generate syllabus.');
+          return { success: false };
         } finally {
           set({ loading: false });
         }
@@ -305,12 +245,11 @@ const useStore = create(
         set({ loading: true });
         try {
           const response = await axios.post(`${API_PLANNER}/topics/${topicId}/notes`);
-          toast.success('Short notes generated!');
+          toast.success('Notes generated!');
           return { success: true, notes: response.data.notes };
         } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to generate notes.';
-          toast.error(msg);
-          return { success: false, error: msg };
+          toast.error('Failed to generate notes.');
+          return { success: false };
         } finally {
           set({ loading: false });
         }
@@ -320,20 +259,20 @@ const useStore = create(
         set({ loading: true });
         try {
           const response = await axios.post(`${API_PLANNER}/topics/${topicId}/questions`);
-          toast.success('Important questions generated!');
+          toast.success('Questions generated!');
           return { success: true, questions: response.data.questions };
         } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to generate questions.';
-          toast.error(msg);
-          return { success: false, error: msg };
+          toast.error('Failed to generate questions.');
+          return { success: false };
         } finally {
           set({ loading: false });
         }
-      }
+      },
     }),
     {
       name: 'smart-learning-planner-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, theme: state.theme }),
+      // Only persist theme — Clerk handles user session persistence
+      partialize: (state) => ({ theme: state.theme }),
     }
   )
 );
