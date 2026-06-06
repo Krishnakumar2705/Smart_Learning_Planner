@@ -76,18 +76,32 @@ const Setup = () => {
       if (sourceType === 'pdf') {
         const res = await uploadSyllabusPDF(file);
         if (res.success) {
-          setTopics(res.topics || []);
+          // Normalize extracted syllabus objects (mapping t.topic to t.name)
+          const normalized = (res.syllabus || []).map(t => ({
+            name: t.topic || t.name,
+            subject: t.subject || subjects[0] || 'General',
+            priority: t.priority || 'Medium',
+            unit: t.unit || 'General'
+          }));
+          setTopics(normalized);
           setStep(3);
         } else {
-          setFormError(res.error);
+          setFormError(res.error || 'Failed to process syllabus PDF.');
         }
       } else if (sourceType === 'pyq') {
         const res = await uploadPYQ(file);
         if (res.success) {
-          setTopics(res.topics || []);
+          // PYQ returns list of topic strings; map them to objects
+          const mapped = (res.frequentTopics || []).map(topicName => ({
+            name: topicName,
+            subject: subjects[0] || 'General',
+            priority: 'High',
+            unit: 'General'
+          }));
+          setTopics(mapped);
           setStep(3);
         } else {
-          setFormError(res.error);
+          setFormError(res.error || 'Failed to analyze PYQ.');
         }
       }
     }
