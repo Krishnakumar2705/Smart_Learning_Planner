@@ -71,20 +71,26 @@ const Setup = () => {
       }
     } else {
       // PDF or PYQ
+      if (!subjectInput.trim()) {
+        setFormError('Please enter a subject name.');
+        return;
+      }
       if (!file) {
         setFormError('Please upload a file.');
         return;
       }
+      const subj = subjectInput.trim();
       if (sourceType === 'pdf') {
         const res = await uploadSyllabusPDF(file);
         if (res.success) {
           // Normalize extracted syllabus objects (mapping t.topic to t.name)
           const normalized = (res.syllabus || []).map(t => ({
             name: t.topic || t.name,
-            subject: t.subject || subjects[0] || 'General',
+            subject: subj,
             priority: t.priority || 'Medium',
             unit: t.unit || 'General'
           }));
+          setSubjects([subj]);
           setTopics(normalized);
           setStep(3);
         } else {
@@ -96,10 +102,11 @@ const Setup = () => {
           // PYQ returns list of topic strings; map them to objects
           const mapped = (res.frequentTopics || []).map(topicName => ({
             name: topicName,
-            subject: subjects[0] || 'General',
+            subject: subj,
             priority: 'High',
             unit: 'General'
           }));
+          setSubjects([subj]);
           setTopics(mapped);
           setStep(3);
         } else {
@@ -341,22 +348,36 @@ const Setup = () => {
                   )}
 
                   {(sourceType === 'pdf' || sourceType === 'pyq') && (
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2">
-                        Select PDF File
-                      </label>
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        onChange={(e) => setFile(e.target.files[0])}
-                        className="block w-full text-sm text-slate-500 dark:text-gray-400
-                          file:mr-4 file:py-2.5 file:px-4
-                          file:rounded-xl file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-indigo-500/20 file:text-indigo-300
-                          hover:file:bg-indigo-500/30
-                          cursor-pointer"
-                      />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2">
+                          Subject Name
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Physics, DBMS, React"
+                          className="w-full px-4 py-2.5 bg-black/50 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none"
+                          value={subjectInput}
+                          onChange={(e) => setSubjectInput(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2">
+                          Select PDF File
+                        </label>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => setFile(e.target.files[0])}
+                          className="block w-full text-sm text-slate-500 dark:text-gray-400
+                            file:mr-4 file:py-2.5 file:px-4
+                            file:rounded-xl file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-indigo-500/20 file:text-indigo-300
+                            hover:file:bg-indigo-500/30
+                            cursor-pointer"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
