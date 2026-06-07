@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import useStore from '../store/useStore';
 import { Sparkles, ShieldAlert, BrainCircuit, Upload, FileText, LayoutList, ChevronRight, ChevronLeft, CheckCircle2, X, Trash2 } from 'lucide-react';
 import { PropagateLoader } from 'react-spinners';
+import { useClerk } from '@clerk/react';
 
 const Setup = () => {
-  const { logout, generateNewPlan, uploadSyllabusPDF, uploadPYQ, generateStandardSyllabus, loading } = useStore();
+  const { generateNewPlan, uploadSyllabusPDF, uploadPYQ, generateStandardSyllabus, loading } = useStore();
+  const { signOut } = useClerk();
   
   const [step, setStep] = useState(1);
   const [formError, setFormError] = useState('');
@@ -459,7 +461,7 @@ const Setup = () => {
             <div className="flex justify-between items-center pt-6 mt-6 border-t border-white/5">
               <button
                 type="button"
-                onClick={() => step > 1 ? setStep(step - 1) : logout()}
+                onClick={() => step > 1 ? setStep(step - 1) : signOut()}
                 className="px-5 py-2.5 text-sm font-semibold text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white transition bg-transparent border border-transparent cursor-pointer flex items-center gap-2"
               >
                 {step > 1 ? <><ChevronLeft className="w-4 h-4"/> Back</> : 'Logout'}

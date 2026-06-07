@@ -356,7 +356,7 @@ export const generateAISchedule = async (params) => {
       4. Populate dailySchedules for 7 days ahead.
     `;
 
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
     // Strip markdown formatting if Gemini wrapped it in ```json ... ```
@@ -428,7 +428,7 @@ export const generateAIRecommendations = async (subjectStatusList) => {
       Do not include markdown tags. Just return raw JSON list.
     `;
 
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
     const cleanedText = text
@@ -494,7 +494,7 @@ export const generateAIMockTest = async (subject, syllabusText = "General topics
       Do not include any markdown syntax or backticks. Return the JSON only.
     `;
 
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
     const cleanedText = text
@@ -543,7 +543,7 @@ export const extractSyllabusFromPDF = async (pdfText) => {
     `;
     
     // 5. Send the prompt to Gemini and wait for the result
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
     // 6. Sometimes the AI adds markdown formatting (like ```json). We strip that out here.
@@ -576,7 +576,7 @@ export const analyzePYQ = async (pdfText) => {
       
       Do not include any markdown syntax or backticks. Return the JSON array only.
     `;
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
     return JSON.parse(cleanedText);
@@ -604,7 +604,7 @@ export const generateStandardSyllabus = async (subject) => {
       
       Do not include any markdown syntax or backticks. Return the JSON array only.
     `;
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
     return JSON.parse(cleanedText);
@@ -624,7 +624,7 @@ export const generateShortNotes = async (topic) => {
     const ai = new GoogleGenerativeAI(apiKey);
     const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `Generate concise, markdown-formatted short notes for the topic: ${topic}.`;
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     return result.response.text().trim(); // Return raw string because we WANT markdown here!
   } catch (error) {
     console.error('Gemini Short Notes Error:', error);
@@ -642,7 +642,7 @@ export const generateImportantQuestions = async (topic) => {
     const ai = new GoogleGenerativeAI(apiKey);
     const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `Generate a markdown-formatted list of important questions for the topic: ${topic}.`;
-    const result = await model.generateContent({ contents: prompt });
+    const result = await model.generateContent(prompt);
     return result.response.text().trim();
   } catch (error) {
     console.error('Gemini Important Questions Error:', error);
