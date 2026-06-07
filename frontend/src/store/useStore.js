@@ -169,6 +169,48 @@ const useStore = create(
         }
       },
 
+      deleteTopic: async (topicId) => {
+        try {
+          const response = await axios.delete(`${API_PLANNER}/topics/${topicId}`);
+          set({ planner: response.data.planner });
+          toast.success('Topic deleted!');
+          await get().reloadAnalyticsAndRecommendations();
+          return { success: true };
+        } catch (err) {
+          const msg = err.response?.data?.message || 'Failed to delete topic.';
+          toast.error(msg);
+          return { success: false, error: msg };
+        }
+      },
+
+      addSubject: async (subjectName) => {
+        try {
+          const response = await axios.post(`${API_PLANNER}/subjects`, { subject: subjectName });
+          set({ planner: response.data.planner });
+          toast.success('Subject added!');
+          await get().reloadAnalyticsAndRecommendations();
+          return { success: true };
+        } catch (err) {
+          const msg = err.response?.data?.message || 'Failed to add subject.';
+          toast.error(msg);
+          return { success: false, error: msg };
+        }
+      },
+
+      deleteSubject: async (subjectName) => {
+        try {
+          const response = await axios.delete(`${API_PLANNER}/subjects/${subjectName}`);
+          set({ planner: response.data.planner });
+          toast.success('Subject and its topics deleted!');
+          await get().reloadAnalyticsAndRecommendations();
+          return { success: true };
+        } catch (err) {
+          const msg = err.response?.data?.message || 'Failed to delete subject.';
+          toast.error(msg);
+          return { success: false, error: msg };
+        }
+      },
+
       toggleRevision: async (srId, isCompleted) => {
         try {
           const response = await axios.patch(`${API_PLANNER}/spaced-repetition/${srId}`, { isCompleted });

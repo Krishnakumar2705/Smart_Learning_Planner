@@ -342,3 +342,78 @@ export const generateStandardSyllabusEndpoint = async (req, res) => {
     res.status(500).json({ message: 'Failed to generate standard syllabus', error: error.message });
   }
 };
+
+// DELETE /api/planner/topics/:topicId
+export const deleteTopic = async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const userId = await resolveUserId(req.user._id);
+
+    if (isConnected()) {
+      const planner = await Planner.findOne({ user: userId });
+      if (!planner) return res.status(404).json({ message: 'Planner not found' });
+      planner.topics = planner.topics.filter(t => t._id.toString() !== topicId);
+      await planner.save();
+      return res.json({ success: true, planner });
+    } else {
+      if (!MOCK_PLANNER_DB) return res.status(404).json({ message: 'Planner not found' });
+      MOCK_PLANNER_DB.topics = MOCK_PLANNER_DB.topics.filter(t => t._id !== topicId);
+      return res.json({ success: true, planner: MOCK_PLANNER_DB });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete topic', error: error.message });
+  }
+};
+
+// POST /api/planner/subjects
+export const addSubject = async (req, res) => {
+  try {
+    const { subject } = req.body;
+    if (!subject) return res.status(400).json({ message: 'Subject name required' });
+    const userId = await resolveUserId(req.user._id);
+
+    if (isConnected()) {
+      const planner = await Planner.findOne({ user: userId });
+      if (!planner) return res.status(404).json({ message: 'Planner not found' });
+      if (!planner.subjects.includes(subject)) {
+        planner.subjects.push(subject);
+        await planner.save();
+      }
+      return res.status(201).json({ success: true, planner });
+    } else {
+      if (!MOCK_PLANNER_DB) return res.status(404).json({ message: 'Planner not found' });
+      if (!MOCK_PLANNER_DB.subjects.includes(subject)) {
+        MOCK_PLANNER_DB.subjects.push(subject);
+      }
+      return res.status(201).json({ success: true, planner: MOCK_PLANNER_DB });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to add subject', error: error.message });
+  }
+};
+
+// DELETE /api/planner/subjects/:subjectName
+export const deleteSubject = async (req, res) => {
+  try {
+    const { subjectName } = req.params;
+    const userId = await resolveUserId(req.user._id);
+
+    if (isConnected()) {
+      const planner = await Planner.findOne({ user: userId });
+      if (!planner) return res.status(404).json({ message: 'Planner not found' });
+      planner.subjects = planner.subjects.filter(s => s !== subjectName);
+      planner.topics = planner.topics.filter(t => t.subject !== subjectName);
+      planner.weakSubjects = planner.weakSubjects.filter(s => s !== subjectName);
+      await planner.save();
+      return res.json({ success: true, planner });
+    } else {
+      if (!MOCK_PLANNER_DB) return res.status(404).json({ message: 'Planner not found' });
+      MOCK_PLANNER_DB.subjects = MOCK_PLANNER_DB.subjects.filter(s => s !== subjectName);
+      MOCK_PLANNER_DB.topics = MOCK_PLANNER_DB.topics.filter(t => t.subject !== subjectName);
+      MOCK_PLANNER_DB.weakSubjects = MOCK_PLANNER_DB.weakSubjects.filter(s => s !== subjectName);
+      return res.json({ success: true, planner: MOCK_PLANNER_DB });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete subject', error: error.message });
+  }
+};

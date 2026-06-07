@@ -10,7 +10,10 @@ import {
   upload,
   handleUploadSyllabus,
   handleUploadPYQ,
-  generateStandardSyllabusEndpoint
+  generateStandardSyllabusEndpoint,
+  deleteTopic,
+  addSubject,
+  deleteSubject
 } from '../controllers/plannerController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -26,6 +29,9 @@ router.get('/schedules', protect, getDailySchedules);
 router.patch('/schedules/:scheduleId/tasks/:taskId', protect, updateDailyTaskStatus);
 router.patch('/topics/:topicId', protect, updateTopicStatus);
 router.post('/topics', protect, addCustomTopic);
+router.delete('/topics/:topicId', protect, deleteTopic);
+router.post('/subjects', protect, addSubject);
+router.delete('/subjects/:subjectName', protect, deleteSubject);
 router.patch('/spaced-repetition/:srId', protect, updateSpacedRepetitionStatus);
 
 export default router;

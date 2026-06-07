@@ -113,7 +113,7 @@ export default function App() {
     <div className={`min-h-screen relative bg-gradient-to-br from-white via-indigo-50/30 to-cyan-50/30 dark:bg-[#05060b] flex flex-col md:flex-row ${theme === 'dark' ? 'dark' : ''}`}>
       <Toaster position="top-right" />
       <Sidebar />
-      <main className="flex-grow p-6 md:p-8 relative z-10 overflow-y-auto max-h-screen">
+      <main className="flex-grow p-4 sm:p-6 md:p-8 relative z-10 md:overflow-y-auto md:max-h-screen">
         {loading && planner ? (
           <div className="min-h-[60vh] flex items-center justify-center flex-col">
             <PropagateLoader color="#6366f1" size={15} />

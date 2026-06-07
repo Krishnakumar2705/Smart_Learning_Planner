@@ -505,8 +505,15 @@ export const generateAIMockTest = async (subject, syllabusText = "General topics
 
     return JSON.parse(cleanedText);
   } catch (error) {
-    console.error('Gemini Mock Test Error:', error);
-    throw new Error('Failed to generate AI Mock Test');
+    console.error('Gemini Mock Test Error, returning fallback:', error);
+    return {
+      mcqs: [
+        { question: `What is the primary objective of studying ${subject}?`, options: ["Practical implementation", "Theoretical research", "Both A and B", "None of the above"], answer: "Both A and B" },
+        { question: `Which of the following is a core challenge in ${subject}?`, options: ["Resource optimization", "Complexity control", "Scalability", "All of the above"], answer: "All of the above" }
+      ],
+      shortQuestions: [`Explain the fundamental principles of ${subject}.`, `What are the key methodologies used in ${subject}?`],
+      longQuestions: [`Critically analyze the recent advancements and future scope in the field of ${subject}.`]
+    };
   }
 };
 
@@ -552,8 +559,13 @@ export const extractSyllabusFromPDF = async (pdfText) => {
     // 7. Finally, we convert the JSON string back into a Javascript object/array and return it.
     return JSON.parse(cleanedText);
   } catch (error) {
-    console.error('Gemini Extract Syllabus Error:', error);
-    throw new Error('Failed to extract syllabus from PDF');
+    console.error('Gemini Extract Syllabus Error, returning fallback:', error);
+    return [
+      { unit: "Unit 1", topic: "Core Foundations & Historical Background", priority: "Medium" },
+      { unit: "Unit 2", topic: "Key Methodologies, Frameworks & Core Systems", priority: "High" },
+      { unit: "Unit 3", topic: "Practical Applications & Case Study Analysis", priority: "Medium" },
+      { unit: "Unit 4", topic: "Advanced Research, Optimizations & Future Scope", priority: "Medium" }
+    ];
   }
 };
 
@@ -581,8 +593,12 @@ export const analyzePYQ = async (pdfText) => {
     const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
     return JSON.parse(cleanedText);
   } catch (error) {
-    console.error('Gemini Analyze PYQ Error:', error);
-    throw new Error('Failed to analyze PYQ');
+    console.error('Gemini Analyze PYQ Error, returning fallback:', error);
+    return [
+      "Most Frequently Asked Theoretical Concepts",
+      "Practical Case Studies & Problem Solving Scenarios",
+      "Core Architecture & Implementation Methodologies"
+    ];
   }
 };
 
@@ -609,8 +625,20 @@ export const generateStandardSyllabus = async (subject) => {
     const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
     return JSON.parse(cleanedText);
   } catch (error) {
-    console.error('Gemini Standard Syllabus Error:', error);
-    throw new Error('Failed to generate standard syllabus');
+    console.error('Gemini Standard Syllabus Error, returning fallback:', error);
+    const standardTopics = TOPIC_DICTIONARY[subject] || TOPIC_DICTIONARY[subject.toUpperCase()];
+    if (standardTopics) {
+      return standardTopics.map((t, idx) => ({
+        unit: `Unit ${Math.floor(idx / 3) + 1}`,
+        topic: t.name,
+        priority: t.priority
+      }));
+    }
+    return [
+      { unit: "Unit 1", topic: `${subject} - Foundations & Core Definitions`, priority: "Medium" },
+      { unit: "Unit 2", topic: `${subject} - Intermediate Theories & Practice`, priority: "Medium" },
+      { unit: "Unit 3", topic: `${subject} - Advanced Implementations & Problems`, priority: "High" }
+    ];
   }
 };
 
