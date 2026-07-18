@@ -75,3 +75,39 @@ export const getMockTests = async (req, res) => {
     res.status(500).json({ message: 'Failed to retrieve mock tests', error: error.message });
   }
 };
+
+// POST /api/mock-test/save
+export const saveMockTestScore = async (req, res) => {
+  try {
+    const { subject, mcqs, shortQuestions, longQuestions, score } = req.body;
+    if (!subject) return res.status(400).json({ message: 'Subject is required' });
+    const userId = await resolveUserId(req.user._id);
+
+    if (isConnected()) {
+      const mockTest = await MockTest.create({
+        user: userId,
+        subject,
+        mcqs: mcqs || [],
+        shortQuestions: shortQuestions || [],
+        longQuestions: longQuestions || [],
+        score: score || 0,
+      });
+      return res.status(201).json({ success: true, mockTest });
+    } else {
+      const mockTest = {
+        _id: `mocktest_save_${Date.now()}`,
+        user: userId,
+        subject,
+        mcqs: mcqs || [],
+        shortQuestions: shortQuestions || [],
+        longQuestions: longQuestions || [],
+        score: score || 0,
+        createdAt: new Date(),
+      };
+      MOCK_TESTS_DB.push(mockTest);
+      return res.status(201).json({ success: true, mockTest });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to save mock test score', error: error.message });
+  }
+};

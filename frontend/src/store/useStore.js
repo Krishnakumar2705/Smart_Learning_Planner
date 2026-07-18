@@ -7,7 +7,6 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const API_AUTH    = `${BASE_URL}/api/auth`;
 const API_PLANNER = `${BASE_URL}/api/planner`;
 const API_ANALYTICS = `${BASE_URL}/api/analytics`;
-const API_MOCK_TEST = `${BASE_URL}/api/mock-test`;
 
 // Attach Clerk token to every axios request automatically
 axios.interceptors.request.use((config) => {
@@ -219,95 +218,6 @@ const useStore = create(
           await get().reloadAnalyticsAndRecommendations();
         } catch (err) {
           toast.error('Failed to update revision.');
-        }
-      },
-
-      generateMockTest: async (subject) => {
-        set({ loading: true });
-        try {
-          const response = await axios.post(`${API_MOCK_TEST}/generate`, { subject });
-          toast.success('Mock test generated!');
-          return { success: true, mockTest: response.data.mockTest };
-        } catch (err) {
-          const msg = err.response?.data?.message || 'Failed to generate mock test.';
-          toast.error(msg);
-          return { success: false, error: msg };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      uploadSyllabusPDF: async (file) => {
-        set({ loading: true });
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          const response = await axios.post(`${API_PLANNER}/upload-syllabus`, formData);
-          toast.success('Syllabus PDF processed!');
-          return { success: true, syllabus: response.data.syllabus };
-        } catch (err) {
-          toast.error('Failed to process PDF.');
-          return { success: false };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      uploadPYQ: async (file) => {
-        set({ loading: true });
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          const response = await axios.post(`${API_PLANNER}/upload-pyq`, formData);
-          toast.success('PYQ analyzed!');
-          return { success: true, frequentTopics: response.data.frequentTopics };
-        } catch (err) {
-          toast.error('Failed to analyze PYQ.');
-          return { success: false };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      generateStandardSyllabus: async (subjects) => {
-        set({ loading: true });
-        try {
-          const response = await axios.post(`${API_PLANNER}/generate-standard-syllabus`, { subjects });
-          toast.success('Standard syllabus generated!');
-          return { success: true, topics: response.data.topics };
-        } catch (err) {
-          toast.error('Failed to generate syllabus.');
-          return { success: false };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      generateShortNotes: async (topicId) => {
-        set({ loading: true });
-        try {
-          const response = await axios.post(`${API_PLANNER}/topics/${topicId}/notes`);
-          toast.success('Notes generated!');
-          return { success: true, notes: response.data.notes };
-        } catch (err) {
-          toast.error('Failed to generate notes.');
-          return { success: false };
-        } finally {
-          set({ loading: false });
-        }
-      },
-
-      generateImportantQuestions: async (topicId) => {
-        set({ loading: true });
-        try {
-          const response = await axios.post(`${API_PLANNER}/topics/${topicId}/questions`);
-          toast.success('Questions generated!');
-          return { success: true, questions: response.data.questions };
-        } catch (err) {
-          toast.error('Failed to generate questions.');
-          return { success: false };
-        } finally {
-          set({ loading: false });
         }
       },
     }),

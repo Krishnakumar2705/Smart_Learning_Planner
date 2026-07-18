@@ -17,10 +17,24 @@ connectDB();
 const app = express();
 
 // Middlewares
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL, // e.g. https://smart-learning-planner-nu.vercel.app
+].filter(Boolean);
+
 app.use(cors({
-  origin: '*', // Allow all in local development, can restrict in production
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.) or from allowed origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 app.use(express.json());
 
@@ -29,7 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/planner', plannerRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/gamification', gamificationRoutes);
-app.use('/api/mock-test', mockTestRoutes);
+// app.use('/api/mock-test', mockTestRoutes); // AI-powered mock test generation temporarily disabled
 
 // Root Endpoint
 app.get('/', (req, res) => {

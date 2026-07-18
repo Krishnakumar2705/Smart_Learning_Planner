@@ -7,10 +7,6 @@ import {
   updateTopicStatus,
   addCustomTopic,
   updateSpacedRepetitionStatus,
-  upload,
-  handleUploadSyllabus,
-  handleUploadPYQ,
-  generateStandardSyllabusEndpoint,
   deleteTopic,
   addSubject,
   deleteSubject
@@ -20,9 +16,6 @@ import { protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.post('/generate', protect, generatePlan);
-router.post('/upload-syllabus', protect, upload.single('file'), handleUploadSyllabus);
-router.post('/upload-pyq', protect, upload.single('file'), handleUploadPYQ);
-router.post('/generate-standard-syllabus', protect, generateStandardSyllabusEndpoint);
 
 router.get('/current', protect, getPlanner);
 router.get('/schedules', protect, getDailySchedules);

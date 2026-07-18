@@ -4,8 +4,9 @@ import { useAuth } from './AuthContext';
 
 const PlannerContext = createContext();
 
-const API_PLANNER = 'http://localhost:5000/api/planner';
-const API_ANALYTICS = 'http://localhost:5000/api/analytics';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_PLANNER = `${BASE_URL}/api/planner`;
+const API_ANALYTICS = `${BASE_URL}/api/analytics`;
 
 export const PlannerProvider = ({ children }) => {
   const { user } = useAuth();

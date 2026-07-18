@@ -4,7 +4,7 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/sync', protect, syncUser);       // sync Clerk user into MongoDB after login
+router.post('/sync', syncUser);                // sync Clerk user into MongoDB after login (public — user may not exist in DB yet)
 router.get('/profile', protect, getUserProfile); // get user profile
 
 export default router;

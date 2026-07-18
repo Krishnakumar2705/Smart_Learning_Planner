@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import useStore from '../store/useStore';
-import { Sparkles, ShieldAlert, BrainCircuit, Upload, FileText, LayoutList, ChevronRight, ChevronLeft, CheckCircle2, X, Trash2 } from 'lucide-react';
+import { ShieldAlert, BrainCircuit, LayoutList, ChevronRight, ChevronLeft, CheckCircle2, X, Trash2, Sparkles } from 'lucide-react';
 import { PropagateLoader } from 'react-spinners';
 import { useClerk } from '@clerk/react';
 
 const Setup = () => {
-  const { generateNewPlan, uploadSyllabusPDF, uploadPYQ, generateStandardSyllabus, loading } = useStore();
+  const { generateNewPlan, loading } = useStore();
   const { signOut } = useClerk();
   
   const [step, setStep] = useState(1);
@@ -18,10 +18,8 @@ const Setup = () => {
   const [prepLevel, setPrepLevel] = useState('Intermediate');
   
   // Step 2 State
-  const [sourceType, setSourceType] = useState('manual'); // 'manual', 'pdf', 'pyq', 'standard'
-  const [file, setFile] = useState(null);
   const [subjectInput, setSubjectInput] = useState('');
-  const [subjects, setSubjects] = useState([]); // For manual/standard
+  const [subjects, setSubjects] = useState([]);
 
   // Step 3 State
   const [topics, setTopics] = useState([]); // Array of { name, subject, priority, unit }
@@ -33,15 +31,25 @@ const Setup = () => {
       setFormError('Please pick an exam date and define your goal.');
       return;
     }
+    if (new Date(examDate) <= new Date()) {
+      setFormError('Exam date must be in the future.');
+      return;
+    }
     setStep(2);
   };
 
   // Handlers for Step 2
   const addSubjectTag = () => {
-    const term = subjectInput.trim();
-    if (term && !subjects.includes(term)) {
+    const term = subjectInput.trim().slice(0, 50);
+    if (!term) return;
+    if (!/^[a-zA-Z0-9\s\-\.\+#]+$/.test(term)) {
+      setFormError('Subject name can only contain letters, numbers, spaces, and basic symbols (- . + #).');
+      return;
+    }
+    if (!subjects.includes(term)) {
       setSubjects([...subjects, term]);
       setSubjectInput('');
+      setFormError('');
     }
   };
 
@@ -51,69 +59,12 @@ const Setup = () => {
 
   const handleStep2Next = async () => {
     setFormError('');
-    if (sourceType === 'manual' || sourceType === 'standard') {
-      if (subjects.length === 0) {
-        setFormError('Please add at least one subject.');
-        return;
-      }
-      if (sourceType === 'standard') {
-        const res = await generateStandardSyllabus(subjects);
-        if (res.success) {
-          setTopics(res.topics || []);
-          setStep(3);
-        } else {
-          setFormError(res.error);
-        }
-      } else {
-        // Manual - we don't have topics yet, maybe just go to step 3 and let them add
-        setTopics([]);
-        setStep(3);
-      }
-    } else {
-      // PDF or PYQ
-      if (!subjectInput.trim()) {
-        setFormError('Please enter a subject name.');
-        return;
-      }
-      if (!file) {
-        setFormError('Please upload a file.');
-        return;
-      }
-      const subj = subjectInput.trim();
-      if (sourceType === 'pdf') {
-        const res = await uploadSyllabusPDF(file);
-        if (res.success) {
-          // Normalize extracted syllabus objects (mapping t.topic to t.name)
-          const normalized = (res.syllabus || []).map(t => ({
-            name: t.topic || t.name,
-            subject: subj,
-            priority: t.priority || 'Medium',
-            unit: t.unit || 'General'
-          }));
-          setSubjects([subj]);
-          setTopics(normalized);
-          setStep(3);
-        } else {
-          setFormError(res.error || 'Failed to process syllabus PDF.');
-        }
-      } else if (sourceType === 'pyq') {
-        const res = await uploadPYQ(file);
-        if (res.success) {
-          // PYQ returns list of topic strings; map them to objects
-          const mapped = (res.frequentTopics || []).map(topicName => ({
-            name: topicName,
-            subject: subj,
-            priority: 'High',
-            unit: 'General'
-          }));
-          setSubjects([subj]);
-          setTopics(mapped);
-          setStep(3);
-        } else {
-          setFormError(res.error || 'Failed to analyze PYQ.');
-        }
-      }
+    if (subjects.length === 0) {
+      setFormError('Please add at least one subject.');
+      return;
     }
+    setTopics([]);
+    setStep(3);
   };
 
   // Handlers for Step 3
@@ -143,7 +94,7 @@ const Setup = () => {
   };
 
   const handleStep3Next = () => {
-    if (topics.length === 0 && sourceType !== 'manual') {
+    if (topics.length === 0) {
       setFormError('Please review and ensure there is at least one topic.');
       return;
     }
@@ -231,6 +182,7 @@ const Setup = () => {
                       type="date"
                       className="w-full px-4 py-3 bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none transition"
                       value={examDate}
+                      min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                       onChange={(e) => setExamDate(e.target.value)}
                     />
                   </div>
@@ -284,102 +236,42 @@ const Setup = () => {
 
             {step === 2 && (
               <div className="space-y-6 animate-fade-in">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Step 2: Choose Syllabus Source</h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { id: 'manual', title: 'Build Manually', icon: LayoutList, desc: 'Type subjects and topics yourself' },
-                    { id: 'standard', title: 'Generate Standard Syllabus', icon: Sparkles, desc: 'AI generates a generic syllabus' },
-                    { id: 'pdf', title: 'Upload Syllabus PDF', icon: FileText, desc: 'Extract topics directly from PDF' },
-                    { id: 'pyq', title: 'Upload Past Papers', icon: Upload, desc: 'AI finds important topics from PYQs' }
-                  ].map((option) => {
-                    const Icon = option.icon;
-                    return (
-                      <div 
-                        key={option.id}
-                        onClick={() => setSourceType(option.id)}
-                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                          sourceType === option.id 
-                            ? 'bg-indigo-100 dark:bg-indigo-500/10 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]' 
-                            : 'bg-black/20 border-white/5 hover:border-white/20'
-                        }`}
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Step 2: Add Your Subjects</h3>
+
+                <div className="p-5 bg-slate-100 dark:bg-black/30 rounded-xl border border-slate-200 dark:border-white/5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2 flex items-center gap-2">
+                      <LayoutList className="w-3.5 h-3.5" />
+                      Add Subjects
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        placeholder="e.g. Physics, DBMS, React"
+                        className="flex-grow px-4 py-2.5 bg-white dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none"
+                        maxLength={50}
+                        value={subjectInput}
+                        onChange={(e) => setSubjectInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addSubjectTag()}
+                      />
+                      <button
+                        type="button"
+                        onClick={addSubjectTag}
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white rounded-xl text-sm font-bold transition"
                       >
-                        <Icon className={`w-6 h-6 mb-3 ${sourceType === option.id ? 'text-indigo-400' : 'text-slate-500 dark:text-gray-400'}`} />
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{option.title}</h4>
-                        <p className="text-xs text-slate-500 dark:text-gray-400">{option.desc}</p>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="mt-6 p-5 bg-black/30 rounded-xl border border-white/5">
-                  {(sourceType === 'manual' || sourceType === 'standard') && (
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2">
-                        Add Subjects
-                      </label>
-                      <div className="flex gap-2 mb-3">
-                        <input
-                          type="text"
-                          placeholder="e.g. Physics, DBMS, React"
-                          className="flex-grow px-4 py-2.5 bg-black/50 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none"
-                          value={subjectInput}
-                          onChange={(e) => setSubjectInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && addSubjectTag()}
-                        />
-                        <button
-                          type="button"
-                          onClick={addSubjectTag}
-                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white rounded-xl text-sm font-bold transition"
-                        >
-                          Add
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {subjects.map((tag) => (
-                          <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-xs text-indigo-200 font-semibold">
-                            {tag}
-                            <button onClick={() => removeSubjectTag(tag)} className="text-indigo-400 hover:text-slate-900 dark:text-white cursor-pointer"><X className="w-3.5 h-3.5"/></button>
-                          </span>
-                        ))}
-                        {subjects.length === 0 && <span className="text-xs text-slate-400 dark:text-gray-500">No subjects added.</span>}
-                      </div>
+                        Add
+                      </button>
                     </div>
-                  )}
-
-                  {(sourceType === 'pdf' || sourceType === 'pyq') && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2">
-                          Subject Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Physics, DBMS, React"
-                          className="w-full px-4 py-2.5 bg-black/50 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none"
-                          value={subjectInput}
-                          onChange={(e) => setSubjectInput(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-2">
-                          Select PDF File
-                        </label>
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          onChange={(e) => setFile(e.target.files[0])}
-                          className="block w-full text-sm text-slate-500 dark:text-gray-400
-                            file:mr-4 file:py-2.5 file:px-4
-                            file:rounded-xl file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-indigo-500/20 file:text-indigo-300
-                            hover:file:bg-indigo-500/30
-                            cursor-pointer"
-                        />
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      {subjects.map((tag) => (
+                        <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-xs text-indigo-200 font-semibold">
+                          {tag}
+                          <button onClick={() => removeSubjectTag(tag)} className="text-indigo-400 hover:text-slate-900 dark:text-white cursor-pointer"><X className="w-3.5 h-3.5"/></button>
+                        </span>
+                      ))}
+                      {subjects.length === 0 && <span className="text-xs text-slate-400 dark:text-gray-500">No subjects added.</span>}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}

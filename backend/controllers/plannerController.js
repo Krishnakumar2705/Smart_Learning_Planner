@@ -1,12 +1,9 @@
 import Planner from '../models/Planner.js';
 import DailySchedule from '../models/DailySchedule.js';
 import User from '../models/User.js';
-import { generateAISchedule, extractSyllabusFromPDF, analyzePYQ, generateStandardSyllabus as genStdSyllabus } from '../services/aiService.js';
+import { generateAISchedule } from '../services/aiService.js';
 import mongoose from 'mongoose';
 import multer from 'multer';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage });
@@ -32,6 +29,10 @@ export const generatePlan = async (req, res) => {
 
     if (!examDate || !goal || !subjects || subjects.length === 0 || !dailyHours) {
       return res.status(400).json({ message: 'Please provide all required fields' });
+    }
+
+    if (new Date(examDate) <= new Date()) {
+      return res.status(400).json({ message: 'Exam date must be in the future.' });
     }
 
     const generatedData = await generateAISchedule({
@@ -303,45 +304,9 @@ export const getOfflinePlannerData = () => ({
   dailySchedules: MOCK_DAILY_SCHEDULES_DB,
 });
 
-// POST /api/planner/upload-syllabus
-export const handleUploadSyllabus = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const data = await pdfParse(req.file.buffer);
-    const syllabus = await extractSyllabusFromPDF(data.text);
-    res.json({ success: true, syllabus });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to process syllabus PDF', error: error.message });
-  }
-};
-
-// POST /api/planner/upload-pyq
-export const handleUploadPYQ = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const data = await pdfParse(req.file.buffer);
-    const frequentTopics = await analyzePYQ(data.text);
-    res.json({ success: true, frequentTopics });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to process PYQ PDF', error: error.message });
-  }
-};
-
-// POST /api/planner/generate-standard-syllabus
-export const generateStandardSyllabusEndpoint = async (req, res) => {
-  try {
-    const { subjects } = req.body;
-    if (!subjects?.length) return res.status(400).json({ message: 'Subjects required' });
-    let allTopics = [];
-    for (const subject of subjects) {
-      const list = await genStdSyllabus(subject);
-      allTopics = allTopics.concat(list.map(t => ({ ...t, subject })));
-    }
-    res.json({ success: true, topics: allTopics });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to generate standard syllabus', error: error.message });
-  }
-};
+// POST /api/planner/upload-syllabus — removed (AI feature unavailable)
+// POST /api/planner/upload-pyq — removed (AI feature unavailable)
+// POST /api/planner/generate-standard-syllabus — removed (AI feature unavailable)
 
 // DELETE /api/planner/topics/:topicId
 export const deleteTopic = async (req, res) => {

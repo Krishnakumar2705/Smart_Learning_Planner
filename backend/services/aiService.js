@@ -450,71 +450,8 @@ export const generateAIRecommendations = async (subjectStatusList) => {
 };
 
 export const generateAIMockTest = async (subject, syllabusText = "General topics") => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    return {
-      mcqs: [
-        { question: `Mock MCQ 1 for ${subject}?`, options: ["A", "B", "C", "D"], answer: "A" }
-      ],
-      shortQuestions: [`Mock short question for ${subject}?`],
-      longQuestions: [`Mock long question for ${subject}?`]
-    };
-  }
-
-  try {
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    
-    const prompt = `
-      You are an expert examiner. Please generate a rigorous mock test for the subject: ${subject}.
-      
-      Here is the specific syllabus to base the questions on:
-      ${syllabusText}
-      
-      IMPORTANT: Actively pull in current real-world examples, advanced concepts from the provided syllabus, and standard examination patterns. The questions must strictly test the concepts mentioned in the syllabus.
-
-      Return a strictly formatted JSON object with 10 MCQs, 5 short questions, and 2 long questions.
-      Use this exact JSON structure:
-      {
-        "mcqs": [
-          {
-            "question": "Question text",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "answer": "Option A"
-          }
-        ],
-        "shortQuestions": [
-          "Short question 1"
-        ],
-        "longQuestions": [
-          "Long question 1"
-        ]
-      }
-      
-      Do not include any markdown syntax or backticks. Return the JSON only.
-    `;
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    
-    const cleanedText = text
-      .replace(/^```json/i, '')
-      .replace(/^```/i, '')
-      .replace(/```$/, '')
-      .trim();
-
-    return JSON.parse(cleanedText);
-  } catch (error) {
-    console.error('Gemini Mock Test Error, returning fallback:', error);
-    return {
-      mcqs: [
-        { question: `What is the primary objective of studying ${subject}?`, options: ["Practical implementation", "Theoretical research", "Both A and B", "None of the above"], answer: "Both A and B" },
-        { question: `Which of the following is a core challenge in ${subject}?`, options: ["Resource optimization", "Complexity control", "Scalability", "All of the above"], answer: "All of the above" }
-      ],
-      shortQuestions: [`Explain the fundamental principles of ${subject}.`, `What are the key methodologies used in ${subject}?`],
-      longQuestions: [`Critically analyze the recent advancements and future scope in the field of ${subject}.`]
-    };
-  }
+  // Removed: AI-powered mock test generation is temporarily unavailable.
+  throw new Error('Mock test generation is currently unavailable.');
 };
 
 // --- AI Service: The Brain of the Application ---
@@ -522,158 +459,30 @@ export const generateAIMockTest = async (subject, syllabusText = "General topics
 // Think of this file as the "translator" between our application and the AI.
 
 export const extractSyllabusFromPDF = async (pdfText) => {
-  // 1. We grab the secret API key from our environment variables
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  // 2. Fallback check: if no API key is provided, we return dummy data to prevent the app from crashing.
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    return [{ unit: "Unit 1", topic: "General Topic", priority: "Medium" }];
-  }
-  try {
-    // 3. Initialize the Google Generative AI client with our key
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    
-    // 4. We write a "Prompt". This is just a set of instructions telling the AI EXACTLY what we want.
-    // We strictly ask it to return a JSON array so our Javascript code can read it easily.
-    const prompt = `
-      Extract the syllabus structure from the following text. 
-      Return a JSON array of objects, where each object has:
-      - "unit": "Unit name or number"
-      - "topic": "Topic Name"
-      - "priority": "High", "Medium", or "Low" based on typical importance.
-      
-      Text:
-      ${pdfText}
-      
-      Do not include any markdown syntax or backticks. Return the JSON array only.
-    `;
-    
-    // 5. Send the prompt to Gemini and wait for the result
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    
-    // 6. Sometimes the AI adds markdown formatting (like ```json). We strip that out here.
-    const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
-    
-    // 7. Finally, we convert the JSON string back into a Javascript object/array and return it.
-    return JSON.parse(cleanedText);
-  } catch (error) {
-    console.error('Gemini Extract Syllabus Error, returning fallback:', error);
-    return [
-      { unit: "Unit 1", topic: "Core Foundations & Historical Background", priority: "Medium" },
-      { unit: "Unit 2", topic: "Key Methodologies, Frameworks & Core Systems", priority: "High" },
-      { unit: "Unit 3", topic: "Practical Applications & Case Study Analysis", priority: "Medium" },
-      { unit: "Unit 4", topic: "Advanced Research, Optimizations & Future Scope", priority: "Medium" }
-    ];
-  }
+  // Removed: AI-powered PDF syllabus extraction is temporarily unavailable.
+  throw new Error('Syllabus PDF extraction is currently unavailable.');
 };
 
 // This function analyzes Previous Year Questions (PYQ) to find the most important topics.
 export const analyzePYQ = async (pdfText) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    return ["Frequently Asked Topic 1", "Frequently Asked Topic 2"];
-  }
-  try {
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `
-      Analyze the following Previous Year Questions (PYQ) text. 
-      Identify the most frequently asked topics and concepts.
-      Return a JSON array of strings, where each string is a topic name that needs a priority boost.
-      
-      Text:
-      ${pdfText}
-      
-      Do not include any markdown syntax or backticks. Return the JSON array only.
-    `;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
-    return JSON.parse(cleanedText);
-  } catch (error) {
-    console.error('Gemini Analyze PYQ Error, returning fallback:', error);
-    return [
-      "Most Frequently Asked Theoretical Concepts",
-      "Practical Case Studies & Problem Solving Scenarios",
-      "Core Architecture & Implementation Methodologies"
-    ];
-  }
+  // Removed: AI-powered PYQ analysis is temporarily unavailable.
+  throw new Error('PYQ analysis is currently unavailable.');
 };
 
 // This function asks the AI to act like a professor and generate a syllabus from scratch.
 export const generateStandardSyllabus = async (subject) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    return [{ unit: "Unit 1", topic: `${subject} Basics`, priority: "High" }];
-  }
-  try {
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `
-      Generate a standard syllabus for the subject: ${subject}.
-      Return a JSON array of objects, where each object has:
-      - "unit": "Unit name or number"
-      - "topic": "Topic Name"
-      - "priority": "High", "Medium", or "Low" based on importance.
-      
-      Do not include any markdown syntax or backticks. Return the JSON array only.
-    `;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    const cleanedText = text.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
-    return JSON.parse(cleanedText);
-  } catch (error) {
-    console.error('Gemini Standard Syllabus Error, returning fallback:', error);
-    const standardTopics = TOPIC_DICTIONARY[subject] || TOPIC_DICTIONARY[subject.toUpperCase()];
-    if (standardTopics) {
-      return standardTopics.map((t, idx) => ({
-        unit: `Unit ${Math.floor(idx / 3) + 1}`,
-        topic: t.name,
-        priority: t.priority
-      }));
-    }
-    return [
-      { unit: "Unit 1", topic: `${subject} - Foundations & Core Definitions`, priority: "Medium" },
-      { unit: "Unit 2", topic: `${subject} - Intermediate Theories & Practice`, priority: "Medium" },
-      { unit: "Unit 3", topic: `${subject} - Advanced Implementations & Problems`, priority: "High" }
-    ];
-  }
+  // Removed: AI-powered standard syllabus generation is temporarily unavailable.
+  throw new Error('Standard syllabus generation is currently unavailable.');
 };
 
 // Generates quick markdown-formatted notes for any given topic.
 export const generateShortNotes = async (topic) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    return `# Short Notes for ${topic}\n\n- Point 1\n- Point 2`;
-  }
-  try {
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `Generate concise, markdown-formatted short notes for the topic: ${topic}.`;
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim(); // Return raw string because we WANT markdown here!
-  } catch (error) {
-    console.error('Gemini Short Notes Error:', error);
-    throw new Error('Failed to generate short notes');
-  }
+  // Removed: AI-powered short notes generation is temporarily unavailable.
+  throw new Error('Short notes generation is currently unavailable.');
 };
 
 // Generates a list of important questions for a specific topic.
 export const generateImportantQuestions = async (topic) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    return `# Important Questions for ${topic}\n\n1. Question 1?\n2. Question 2?`;
-  }
-  try {
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `Generate a markdown-formatted list of important questions for the topic: ${topic}.`;
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-  } catch (error) {
-    console.error('Gemini Important Questions Error:', error);
-    throw new Error('Failed to generate important questions');
-  }
+  // Removed: AI-powered question generation is temporarily unavailable.
+  throw new Error('Important questions generation is currently unavailable.');
 };
