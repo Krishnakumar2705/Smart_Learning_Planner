@@ -4,9 +4,10 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_AUTH    = `${BASE_URL}/api/auth`;
-const API_PLANNER = `${BASE_URL}/api/planner`;
+const API_AUTH      = `${BASE_URL}/api/auth`;
+const API_PLANNER   = `${BASE_URL}/api/planner`;
 const API_ANALYTICS = `${BASE_URL}/api/analytics`;
+const API_MOCK_TEST = `${BASE_URL}/api/mock-test`;
 
 // Attach Clerk token to every axios request automatically
 axios.interceptors.request.use((config) => {
@@ -218,6 +219,30 @@ const useStore = create(
           await get().reloadAnalyticsAndRecommendations();
         } catch (err) {
           toast.error('Failed to update revision.');
+        }
+      },
+
+      // ── Mock Tests ────────────────────────────────────────────
+      generateMockTest: async (subject) => {
+        try {
+          const response = await axios.post(`${API_MOCK_TEST}/generate`, { subject });
+          return { success: true, mockTest: response.data.mockTest };
+        } catch (err) {
+          const msg = err.response?.data?.message || 'Failed to generate mock test.';
+          toast.error(msg);
+          return { success: false, error: msg };
+        }
+      },
+
+      saveMockTest: async ({ subject, mcqs, shortQuestions, longQuestions, score }) => {
+        try {
+          await axios.post(`${API_MOCK_TEST}/save`, { subject, mcqs, shortQuestions, longQuestions, score });
+          toast.success(`Test score saved! (${score}/${mcqs.length})`);
+          return { success: true };
+        } catch (err) {
+          const msg = err.response?.data?.message || 'Failed to save test score.';
+          toast.error(msg);
+          return { success: false, error: msg };
         }
       },
     }),

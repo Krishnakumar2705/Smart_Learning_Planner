@@ -449,9 +449,147 @@ export const generateAIRecommendations = async (subjectStatusList) => {
   }
 };
 
-export const generateAIMockTest = async (subject, syllabusText = "General topics") => {
-  // Removed: AI-powered mock test generation is temporarily unavailable.
-  throw new Error('Mock test generation is currently unavailable.');
+// ── Static question bank fallback ────────────────────────────────────────────
+const STATIC_QUESTION_BANK = {
+  DSA: {
+    mcqs: [
+      { question: 'What is the time complexity of binary search?', options: ['O(n)', 'O(log n)', 'O(n²)', 'O(1)'], answer: 'O(log n)' },
+      { question: 'Which data structure uses LIFO order?', options: ['Queue', 'Stack', 'Linked List', 'Tree'], answer: 'Stack' },
+      { question: 'What is the worst-case time complexity of QuickSort?', options: ['O(n log n)', 'O(n)', 'O(n²)', 'O(log n)'], answer: 'O(n²)' },
+      { question: 'Which traversal visits root first?', options: ['Inorder', 'Postorder', 'Preorder', 'Level order'], answer: 'Preorder' },
+      { question: 'What does BFS use internally?', options: ['Stack', 'Queue', 'Heap', 'Array'], answer: 'Queue' },
+      { question: 'Which sorting algorithm is stable and has O(n log n) worst case?', options: ['QuickSort', 'HeapSort', 'MergeSort', 'BubbleSort'], answer: 'MergeSort' },
+      { question: 'In a min-heap, the root contains:', options: ['Maximum element', 'Minimum element', 'Middle element', 'Random element'], answer: 'Minimum element' },
+      { question: 'Dynamic Programming is based on:', options: ['Divide and Conquer', 'Greedy approach', 'Memoization/Tabulation', 'Backtracking'], answer: 'Memoization/Tabulation' },
+      { question: 'A hash table with chaining handles collisions using:', options: ['Open addressing', 'Linked lists', 'Binary trees', 'Arrays only'], answer: 'Linked lists' },
+      { question: 'Which graph algorithm finds shortest path in unweighted graph?', options: ['Dijkstra', 'BFS', 'DFS', 'Floyd-Warshall'], answer: 'BFS' },
+    ],
+    shortQuestions: ['Explain the difference between BFS and DFS with examples.', 'What is dynamic programming? Give a real-world use case.', 'Describe the working of a hash map and how collisions are resolved.', 'What is a balanced BST and why is it important?', 'Compare stack and queue with their applications.'],
+    longQuestions: ['Explain the QuickSort algorithm with step-by-step example. Analyze its best, average, and worst-case time complexities.', 'What is graph representation? Explain adjacency matrix vs adjacency list with examples and compare their space and time complexities.'],
+  },
+  DBMS: {
+    mcqs: [
+      { question: 'Which normal form eliminates partial dependencies?', options: ['1NF', '2NF', '3NF', 'BCNF'], answer: '2NF' },
+      { question: 'ACID stands for:', options: ['Atomicity, Consistency, Isolation, Durability', 'Access, Control, Integrity, Data', 'Atomicity, Concurrency, Isolation, Distribution', 'None of above'], answer: 'Atomicity, Consistency, Isolation, Durability' },
+      { question: 'Which SQL clause filters grouped results?', options: ['WHERE', 'GROUP BY', 'HAVING', 'ORDER BY'], answer: 'HAVING' },
+      { question: 'A foreign key references a:', options: ['Primary key in same table', 'Primary key in another table', 'Any column', 'Index'], answer: 'Primary key in another table' },
+      { question: 'Which join returns all rows from both tables?', options: ['INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN'], answer: 'FULL OUTER JOIN' },
+      { question: 'Deadlock in DBMS occurs when:', options: ['Two transactions wait for each other indefinitely', 'A query takes too long', 'Index is missing', 'Too many users login'], answer: 'Two transactions wait for each other indefinitely' },
+      { question: 'Which index speeds up range queries?', options: ['Hash index', 'B+ tree index', 'Bitmap index', 'Full-text index'], answer: 'B+ tree index' },
+      { question: 'Serializability ensures:', options: ['Concurrent transactions appear sequential', 'All data is backed up', 'No transactions fail', 'Locks are released fast'], answer: 'Concurrent transactions appear sequential' },
+      { question: 'ER model represents:', options: ['Executable code', 'Entity-relationship diagram', 'Error reports', 'Encryption rules'], answer: 'Entity-relationship diagram' },
+      { question: 'Which command removes a table and its structure?', options: ['DELETE', 'DROP', 'TRUNCATE', 'REMOVE'], answer: 'DROP' },
+    ],
+    shortQuestions: ['What is normalization? Explain 1NF, 2NF, and 3NF with examples.', 'Explain the difference between DELETE, TRUNCATE, and DROP.', 'What is a transaction? Describe the ACID properties.', 'Explain the difference between clustered and non-clustered indexes.', 'What is a deadlock? How can it be prevented in DBMS?'],
+    longQuestions: ['Explain the different types of SQL joins (INNER, LEFT, RIGHT, FULL OUTER) with examples and result sets.', 'What is concurrency control? Explain lock-based protocols and timestamp ordering with diagrams.'],
+  },
+  OS: {
+    mcqs: [
+      { question: 'Which scheduling algorithm gives minimum average waiting time?', options: ['FCFS', 'SJF', 'Round Robin', 'Priority'], answer: 'SJF' },
+      { question: 'A semaphore is used for:', options: ['Memory allocation', 'Process synchronization', 'File management', 'I/O handling'], answer: 'Process synchronization' },
+      { question: 'Virtual memory allows:', options: ['Running programs larger than RAM', 'Faster CPU', 'More disk space', 'Better graphics'], answer: 'Running programs larger than RAM' },
+      { question: 'Which page replacement policy replaces least recently used page?', options: ['FIFO', 'LRU', 'Optimal', 'Random'], answer: 'LRU' },
+      { question: 'A process in the "waiting" state is:', options: ['Executing on CPU', 'Waiting for I/O', 'In ready queue', 'Terminated'], answer: 'Waiting for I/O' },
+      { question: 'Deadlock requires which four conditions?', options: ['Mutual exclusion, hold & wait, no preemption, circular wait', 'Starvation, aging, preemption, hold', 'Priority, aging, preemption, wait', 'None of the above'], answer: 'Mutual exclusion, hold & wait, no preemption, circular wait' },
+      { question: 'Thrashing occurs when:', options: ['CPU is idle', 'Too much time is spent in paging', 'Memory is empty', 'Disk is full'], answer: 'Too much time is spent in paging' },
+      { question: 'Which is NOT a process state?', options: ['Running', 'Ready', 'Sleeping', 'Executing-IO'], answer: 'Executing-IO' },
+      { question: 'Banker\'s algorithm is used for:', options: ['Deadlock avoidance', 'Deadlock detection', 'Memory management', 'CPU scheduling'], answer: 'Deadlock avoidance' },
+      { question: 'Paging eliminates:', options: ['Internal fragmentation', 'External fragmentation', 'Both', 'Neither'], answer: 'External fragmentation' },
+    ],
+    shortQuestions: ['What is the difference between process and thread?', 'Explain the various CPU scheduling algorithms briefly.', 'What is a critical section problem? How is it solved?', 'Explain internal vs external fragmentation.', 'What is the purpose of a page table in virtual memory?'],
+    longQuestions: ['Explain deadlock in detail — conditions, detection, prevention, and avoidance (Banker\'s algorithm).', 'Compare and contrast paging and segmentation. Which is better and why?'],
+  },
+  CN: {
+    mcqs: [
+      { question: 'The OSI model has how many layers?', options: ['5', '6', '7', '4'], answer: '7' },
+      { question: 'IP operates at which OSI layer?', options: ['Transport', 'Network', 'Data Link', 'Physical'], answer: 'Network' },
+      { question: 'TCP is:', options: ['Connectionless', 'Connection-oriented', 'Stateless', 'Unreliable'], answer: 'Connection-oriented' },
+      { question: 'DNS resolves:', options: ['IP to MAC', 'Domain names to IP addresses', 'IP to port', 'URLs to emails'], answer: 'Domain names to IP addresses' },
+      { question: 'ARP maps:', options: ['IP to MAC', 'MAC to IP', 'Domain to IP', 'IP to Port'], answer: 'IP to MAC' },
+      { question: 'Which protocol is used for email sending?', options: ['IMAP', 'POP3', 'SMTP', 'HTTP'], answer: 'SMTP' },
+      { question: 'Subnet mask 255.255.255.0 means:', options: ['24-bit network, 8-bit host', '16-bit network', '8-bit network', '32-bit host'], answer: '24-bit network, 8-bit host' },
+      { question: 'HTTP default port is:', options: ['21', '22', '80', '443'], answer: '80' },
+      { question: 'UDP is preferred for:', options: ['File transfer', 'Video streaming', 'Email', 'Database queries'], answer: 'Video streaming' },
+      { question: 'Which layer handles MAC addresses?', options: ['Network', 'Transport', 'Data Link', 'Physical'], answer: 'Data Link' },
+    ],
+    shortQuestions: ['Explain the difference between TCP and UDP with use cases.', 'What is subnetting? How is it useful?', 'Describe the 3-way handshake in TCP.', 'What is the role of ARP in networking?', 'Explain the difference between HTTP and HTTPS.'],
+    longQuestions: ['Describe the OSI model with all 7 layers, their functions, and examples of protocols at each layer.', 'Explain TCP congestion control mechanisms — slow start, congestion avoidance, fast retransmit, and fast recovery.'],
+  },
+};
+
+const generateStaticMockTest = (subject) => {
+  const key = Object.keys(STATIC_QUESTION_BANK).find(
+    k => k.toLowerCase() === subject.toLowerCase() || subject.toLowerCase().includes(k.toLowerCase())
+  );
+  if (key) return STATIC_QUESTION_BANK[key];
+
+  // Generic fallback for any subject not in the bank
+  return {
+    mcqs: [
+      { question: `What is the primary objective of studying ${subject}?`, options: ['Practical implementation', 'Theoretical research', 'Both A and B', 'None of the above'], answer: 'Both A and B' },
+      { question: `Which of the following best describes ${subject}?`, options: ['A scientific discipline', 'A practical skill', 'A theoretical framework', 'All of the above'], answer: 'All of the above' },
+      { question: `A core challenge in ${subject} is:`, options: ['Resource optimization', 'Complexity management', 'Scalability', 'All of the above'], answer: 'All of the above' },
+      { question: `Problem-solving in ${subject} typically requires:`, options: ['Analytical thinking', 'Memorization only', 'Guessing', 'None'], answer: 'Analytical thinking' },
+      { question: `Which approach is most effective when learning ${subject}?`, options: ['Practice problems', 'Reading only', 'Watching videos only', 'Ignoring fundamentals'], answer: 'Practice problems' },
+    ],
+    shortQuestions: [
+      `Explain the fundamental principles of ${subject}.`,
+      `What are the key methodologies used in ${subject}?`,
+      `Describe a real-world application of ${subject}.`,
+      `What are common challenges faced when studying ${subject}?`,
+      `How does ${subject} relate to other disciplines you are studying?`,
+    ],
+    longQuestions: [
+      `Critically analyze the recent advancements and future scope in the field of ${subject}. Include practical examples.`,
+      `Discuss the core concepts of ${subject} in detail, covering both theoretical and practical aspects.`,
+    ],
+  };
+};
+
+export const generateAIMockTest = async (subject, syllabusText = 'General topics') => {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  // Try Gemini AI first
+  if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY_HERE') {
+    try {
+      const ai = new GoogleGenerativeAI(apiKey);
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+      const prompt = `
+        You are an expert examiner. Generate a rigorous mock test for: ${subject}.
+        Base questions on this syllabus:
+        ${syllabusText}
+
+        Return ONLY a valid JSON object with this exact structure (no markdown, no backticks):
+        {
+          "mcqs": [
+            { "question": "Question text", "options": ["Option A", "Option B", "Option C", "Option D"], "answer": "Option A" }
+          ],
+          "shortQuestions": ["Short question 1", "Short question 2", "Short question 3", "Short question 4", "Short question 5"],
+          "longQuestions": ["Long question 1", "Long question 2"]
+        }
+
+        Requirements: 10 MCQs, 5 short questions, 2 long questions. Base on the syllabus topics provided.
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim()
+        .replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/, '').trim();
+
+      const parsed = JSON.parse(text);
+      // Validate structure
+      if (parsed.mcqs?.length > 0 && parsed.shortQuestions?.length > 0) {
+        return parsed;
+      }
+      throw new Error('Invalid response structure from Gemini');
+    } catch (error) {
+      console.error('Gemini mock test failed, using static fallback:', error.message);
+    }
+  }
+
+  // Static question bank fallback
+  console.log(`Using static question bank for: ${subject}`);
+  return generateStaticMockTest(subject);
 };
 
 // --- AI Service: The Brain of the Application ---

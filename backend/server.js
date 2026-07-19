@@ -44,6 +44,7 @@ app.use('/api/planner', plannerRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 // app.use('/api/mock-test', mockTestRoutes); // AI-powered mock test generation temporarily disabled
+app.use('/api/mock-test', mockTestRoutes);
 
 // Root Endpoint
 app.get('/', (req, res) => {
